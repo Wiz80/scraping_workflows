@@ -7,3 +7,11 @@
 *.dump
 
 .vscode
+
+*.txt
+
+*.pdf
+
+*.pyc
+
+kestra-storage/tutorial

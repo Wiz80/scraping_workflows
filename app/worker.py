@@ -1,10 +1,9 @@
+import asyncio
 import os
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.async_api import async_playwright
-from bs4 import BeautifulSoup
-from app.tasks.scraping_task import save_scraped_content
 import logging
 from celery import Celery
+
+from app.scrapers.playwright_scraper import scrape_page_async, scrape_pdf_async
 
 from dotenv import load_dotenv
 
@@ -19,39 +18,27 @@ celery = Celery(__name__)
 celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL", f"amqp://{rabbitmq_user}:{rabbitmq_password}@{rabbitmq_host}")
 celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND", "rpc://")
 
+# Configuración de logging
+celery.conf.update(
+    worker_log_format="[%(asctime)s: %(levelname)s/%(processName)s] %(message)s",
+    worker_task_log_format="[%(asctime)s: %(levelname)s/%(processName)s] %(task_name)s[%(task_id)s]: %(message)s"
+)
+
+# Configuración del logger
+logger = logging.getLogger('celery')
+logger.setLevel(logging.INFO)  # Cambia el nivel de logging según lo necesites
+
+# Si deseas agregar un handler de consola
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter("[%(asctime)s: %(levelname)s] %(message)s")
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
 @celery.task(name="scrape_page")
-async def scrape_page(url):
-    try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+def scrape_page(url):
+    asyncio.run(scrape_page_async(url))
 
-            # Esperar a que se cargue completamente la página
-            await page.goto(url, wait_until='networkidle')
-
-            # Esperar a que se cargue el cuerpo de la página
-            await page.wait_for_selector("body")
-
-            # Scroll para cargar contenido dinámico
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-            await page.wait_for_timeout(2000)  # Espera adicional después del scroll
-
-            # Obtener el contenido HTML y texto visible
-            html_content = await page.content()
-            soup = BeautifulSoup(html_content, 'html.parser')
-            text_content = soup.get_text(separator="\n", strip=True)
-
-            await browser.close()
-
-        # Guardar el contenido extraído
-        try:
-            save_scraped_content(url, text_content)
-        except Exception as e:
-            logging.error(f"Error saving content for {url}: {e}")
-            return False
-
-        return True  # Scraping successful
-
-    except Exception as e:
-        logging.error(f"An error occurred while scraping {url}: {e}")
-        return False
+@celery.task(name="scrape_pdf")
+def scrape_pdf(url):
+    asyncio.run(scrape_pdf_async(url))

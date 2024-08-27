@@ -1,0 +1,12 @@
+{
+    "sites": [{
+        "base_url": "https://arxiv.org",
+        "search_url": "https://arxiv.org/search/?query=human+longevity%26searchtype=all%26source=header",
+        "extract": "pdf"
+      },
+      {
+          "base_url": "https://www.infinitylabcol.com/",
+          "search_url": "",
+          "extract": "/"
+      }]
+}
