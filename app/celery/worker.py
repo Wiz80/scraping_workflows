@@ -3,7 +3,7 @@ import os
 import logging
 from celery import Celery
 
-from app.scrapers.playwright_scraper import scrape_page_async, scrape_pdf_async
+from app.prefect.tasks.scraping_task import scrape_page_async, scrape_pdf_async
 
 from dotenv import load_dotenv
 

@@ -1,11 +1,9 @@
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
-from app.helpers.scraping_task import save_scraped_content
 from app.captcha.captcha_solver import solve_captcha
-from app.helpers.tasks import download_pdf_via_requests
+from app.helpers.get_content import download_pdf_via_requests, save_scraped_content
 from app.helpers.get_delta import GetDelta
-import fitz
 
 import logging
 
@@ -44,6 +42,7 @@ async def run_playwright_scraper(base_url: str):
         browser.close()
     return scraped_content
 
+
 async def scrape_page_async(url):
     try:
         async with async_playwright() as p:
@@ -80,6 +79,7 @@ async def scrape_page_async(url):
         logging.error(f"An error occurred while scraping {url}: {e}")
         return False
     
+
 async def scrape_pdf_async(pdf_url: str) -> float:
 
     getdelta = GetDelta()

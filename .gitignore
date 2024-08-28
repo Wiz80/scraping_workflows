@@ -15,3 +15,5 @@
 *.pyc
 
 kestra-storage/tutorial
+
+.DS_Store
