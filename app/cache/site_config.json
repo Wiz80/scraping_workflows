@@ -1,8 +1,0 @@
-{
-    "https://arxiv.org": {
-        "subsite_key": "query"
-    },
-    "https://example.com": {
-        "subsite_key": "category"
-    }
-}

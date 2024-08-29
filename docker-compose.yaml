@@ -86,7 +86,7 @@ services:
   agent:
     image: prefecthq/prefect:2.11.5-python3.11
     restart: always
-    entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "agent", "start", "-q", "YOUR_WORK_QUEUE_NAME"]
+    entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "agent", "start", "-q", "default"]
     environment:
       - PREFECT_API_URL=http://server:4200/api
 #       Use PREFECT_API_KEY if connecting the agent to Prefect Cloud
@@ -96,19 +96,19 @@ services:
   ### Prefect CLI
   cli:
     image: prefecthq/prefect:2.11.5-python3.11
-    entrypoint: ["/opt/prefect/entrypoint.sh", "python", "app/prefect/flows/start_scraping_flow.py"]
-    working_dir: "/root/flows"
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
+    working_dir: "/app"
     volumes:
-    - "./app/prefect/flows:/root/flows"
+      - "./:/app"
     environment:
       - PREFECT_API_URL=http://server:4200/api
-#       Use PREFECT_API_KEY to use the CLI to interact with Prefect Cloud
-#     - PREFECT_API_KEY=YOUR_API_KEY
+      - PYTHONPATH=/app
     profiles: ["cli"]
+
     depends_on:
       - server
       - agent
-      
+
 volumes:
   prefect:
   db:

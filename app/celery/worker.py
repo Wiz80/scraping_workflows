@@ -2,10 +2,8 @@ import asyncio
 import os
 import logging
 from celery import Celery
-
-from app.prefect.tasks.scraping_task import scrape_page_async, scrape_pdf_async
-
 from dotenv import load_dotenv
+from app.helpers.scrape import scrape_page_async, scrape_pdf_async
 
 load_dotenv()
 
@@ -40,5 +38,5 @@ def scrape_page(url):
     asyncio.run(scrape_page_async(url))
 
 @celery.task(name="scrape_pdf")
-def scrape_pdf(url):
-    asyncio.run(scrape_pdf_async(url))
+def scrape_pdf(base_url, url, subsites):
+    asyncio.run(scrape_pdf_async(pdf_url=url, base_url=base_url, subsites=subsites))

@@ -2,9 +2,18 @@
 from app.celery.worker import scrape_page, scrape_pdf
 import os
 import pika
+from prefect import task
 
-def start_scraping_tasks(rabbitmq_queue: str = 'url_queue',
-                         extract: str = '/'):
+@task(
+    name="Scrape sites",
+    tags=["Scraping urls"],
+    description="Read the RabbitMQ Queue with Celery and start doing scraping sites with async tasks"
+)
+def start_scraping_tasks(
+                         base_url:str,
+                         rabbitmq_queue: str = 'url_queue',
+                         extract: str = '/',
+                         subsites: str= {}):
     
     rabbitmq_host = os.getenv('RABBITMQ_HOST')
     rabbitmq_user = os.getenv('RABBITMQ_DEFAULT_USER')
@@ -25,7 +34,7 @@ def start_scraping_tasks(rabbitmq_queue: str = 'url_queue',
             #TODO: BORRAR COUNT == 1 -> DEBUGGING
             if count == 1:
                 if extract == 'pdf':
-                    scrape_pdf.delay(url)
+                    scrape_pdf.delay(base_url=base_url, url=url, subsites=subsites)
                 else:
                     scrape_page.delay(url)
                 channel.basic_ack(method_frame.delivery_tag)  # Confirmar el mensaje

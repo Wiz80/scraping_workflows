@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from app.captcha.captcha_solver import solve_captcha
-from app.helpers.get_content import download_pdf_via_requests, save_scraped_content
+from app.helpers.get_content import download_pdf_via_requests, save_scraped_content, create_directory_structure
 from app.helpers.get_delta import GetDelta
 
 import logging
@@ -80,19 +80,36 @@ async def scrape_page_async(url):
         return False
     
 
-async def scrape_pdf_async(pdf_url: str) -> float:
-
+async def scrape_pdf_async(pdf_url: str, base_url: str, subsites: str) -> float:
     getdelta = GetDelta()
-    # Limpia la URL para usarla como nombre de archivo
-    filename = f"app/cache/{getdelta.sanitize_filename(pdf_url)}"
+    
+    subsite = list(subsites.values())[0]
+    # Crear la estructura de directorios
+    directory = create_directory_structure(base_url, subsite=subsite)
+    
+    # Limpiar la URL para usarla como nombre de archivo
+    filename = f"{directory}/{getdelta.sanitize_filename(pdf_url)}"
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
-        page = await browser.new_page()
+        browser = await p.chromium.launch(headless=False, args=[
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--disable-web-security",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--start-maximized"
+        ])
+        context = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        page = await context.new_page()
 
         try:
             # Intentar navegar a la página del PDF
-            await page.goto(pdf_url)
+            response = await page.goto(pdf_url, wait_until='networkidle', timeout=60000)
+
+            if response is None or response.status != 200:
+                logging.error(f"Error al navegar a {pdf_url}: Status {response.status if response else 'None'}")
+                return 0.0
             
             # Comprobar si aparece un CAPTCHA
             captcha_present = await page.evaluate('''() => {
@@ -114,7 +131,8 @@ async def scrape_pdf_async(pdf_url: str) -> float:
 
     # Guardar el texto del PDF en un archivo
     getdelta.save_pdf_text_to_file(text, filename)
-    logging.info(f"Text file saved succesfully: {pdf_url}")
+    logging.info(f"Text file saved succesfully: {filename}")
+    
     # Obtener el texto anterior si existe
     old_text = getdelta.get_existing_text(filename)
 
