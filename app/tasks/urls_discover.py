@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 from app.helpers.tree_scraped import TreeScraped
 from app.helpers.get_content import check_and_click_pagination
-from prefect import task
 
 
 load_dotenv()
@@ -14,11 +13,6 @@ rabbitmq_password = os.getenv('RABBITMQ_DEFAULT_PASS')
 
 JSON_FILE_PATH = "app/cache/scraped_sites.json"
 
-@task(
-    name="Discover urls of web site",
-    tags=["getting urls"],
-    description="From a base url of site scrape all the urls and put them on a RabbitMQ Queue"
-)
 async def discover_urls(base_url: str, search_url: str, subsites: dict, extract: str, pagination: bool = False, rabbitmq_queue: str = 'url_queue'):
     
     tree_scraped = TreeScraped()

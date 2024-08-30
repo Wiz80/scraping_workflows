@@ -2,13 +2,7 @@
 from app.celery.worker import scrape_page, scrape_pdf
 import os
 import pika
-from prefect import task
 
-@task(
-    name="Scrape sites",
-    tags=["Scraping urls"],
-    description="Read the RabbitMQ Queue with Celery and start doing scraping sites with async tasks"
-)
 def start_scraping_tasks(
                          base_url:str,
                          rabbitmq_queue: str = 'url_queue',
