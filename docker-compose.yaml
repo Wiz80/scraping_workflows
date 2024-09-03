@@ -88,13 +88,18 @@ x-airflow-common:
 
 services:
   rabbitmq:
-      image: rabbitmq:3-management
-      ports:
-        - "5672:5672"
-        - "15672:15672"
-      environment:
-        RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-        RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   celery_worker:
     build:
@@ -106,18 +111,6 @@ services:
     volumes:
       - ./app/cache/sites:/app/scraped_sites
     command: celery -A app.celery.worker worker --loglevel=info
-
-  dashboard:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: celery --broker=${CELERY_BROKER_URL} flower --port=5555
-    ports:
-      - 5556:5555
-    env_file: .env 
-    depends_on:
-      - celery_worker
-      - rabbitmq
 
   postgres:
     image: postgres:13
@@ -212,6 +205,7 @@ services:
     command:
       - -c
       - |
+        pip install -r /sources/requirements.txt &&
         if [[ -z "${AIRFLOW_UID}" ]]; then
           echo
           echo -e "\033[1;33mWARNING!!!: AIRFLOW_UID not set!\e[0m"

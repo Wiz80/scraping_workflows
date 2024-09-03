@@ -14,7 +14,7 @@ default_args = {
 with DAG(
     'scraping_workflow',
     default_args=default_args,
-    description='A simple scraping DAG',
+    description='Web Scraping DAG',
     schedule_interval=None,
 ) as dag:
 
