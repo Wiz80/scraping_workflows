@@ -1,5 +1,5 @@
 # services/scraping_service.py
-from app.celery.worker import scrape_page, scrape_pdf
+from app.celery_tasks.worker import scrape_page, scrape_pdf
 import os
 import pika
 
