@@ -1,5 +1,7 @@
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
+from typing import Dict, Any
+import os
 from playwright.async_api import async_playwright
 from app.captcha.captcha_solver import solve_captcha
 from app.helpers.get_content import download_pdf_via_requests, save_scraped_content, create_directory_structure
@@ -43,44 +45,84 @@ async def run_playwright_scraper(base_url: str):
     return scraped_content
 
 
-async def scrape_page_async(url):
+async def scrape_page(url: str, base_url: str, subsites: Dict[str, Any] = {}) -> float:
+    """
+    Scrapea una página web, extrae el texto y lo guarda en un archivo .txt.
+    Calcula el delta entre el texto anterior y el nuevo.
+    
+    Args:
+        url (str): URL de la página a scrapear.
+        base_url (str): URL base del sitio web.
+        subsites (Dict[str, Any], optional): Diccionario de subsites. Por defecto es {}.
+    
+    Returns:
+        float: Delta entre el texto antiguo y el nuevo.
+    """
+    getdelta = GetDelta()
+
+    # Manejar la estructura de directorios
+    if subsites:
+        subsite = list(subsites.values())[0]
+    else:
+        subsite = "main"  # Nombre por defecto si no hay subsites
+
+    # Crear la estructura de directorios
+    directory = create_directory_structure(base_url, subsite=subsite)
+
+    # Sanitizar la URL para usarla como nombre de archivo
+    filename = os.path.join(directory, getdelta.sanitize_filename(url))
+
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+            browser = await p.chromium.launch(headless=True, args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-dev-shm-usage",
+                "--disable-web-security",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--start-maximized"
+            ])
+            context = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+            page = await context.new_page()
 
-            # Esperar a que se cargue completamente la página
+            # Navegar a la URL
             await page.goto(url, wait_until='networkidle')
 
-            # Esperar a que se cargue el cuerpo de la página
+            # Esperar a que se cargue completamente el cuerpo de la página
             await page.wait_for_selector("body")
 
             # Scroll para cargar contenido dinámico
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
             await page.wait_for_timeout(2000)  # Espera adicional después del scroll
 
-            # Obtener el contenido HTML y texto visible
+            # Obtener el contenido HTML y extraer el texto visible
             html_content = await page.content()
             soup = BeautifulSoup(html_content, 'html.parser')
             text_content = soup.get_text(separator="\n", strip=True)
 
             await browser.close()
 
-        # Guardar el contenido extraído
-        try:
-            save_scraped_content(url, text_content)
-        except Exception as e:
-            logging.error(f"Error saving content for {url}: {e}")
-            return False
+        # Guardar el texto extraído en un archivo
+        getdelta.save_pdf_text_to_file(text_content, filename)
+        logging.info(f"Text file saved successfully: {filename}")
 
-        return True  # Scraping successful
+        # Obtener el texto anterior si existe
+        old_text = getdelta.get_existing_text(filename)
+
+        # Calcular el delta entre el texto viejo y el nuevo
+        delta = getdelta.calculate_text_delta(old_text, text_content)
+
+        # Actualizar el archivo de texto con el nuevo contenido
+        getdelta.save_pdf_text_to_file(text_content, filename)
+
+        return delta
 
     except Exception as e:
         logging.error(f"An error occurred while scraping {url}: {e}")
-        return False
-    
+        return 0.0  # En caso de error, no se detecta cambio
 
-async def scrape_pdf_async(pdf_url: str, base_url: str, subsites: str) -> float:
+async def scrape_pdf(pdf_url: str, base_url: str, subsites: str) -> float:
     getdelta = GetDelta()
     
     subsite = list(subsites.values())[0]

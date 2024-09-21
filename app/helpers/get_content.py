@@ -3,7 +3,6 @@ import logging
 import re
 import os
 import fitz
-from fastapi import HTTPException
 from urllib.parse import urlparse
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
@@ -55,11 +54,11 @@ def download_pdf_via_requests(pdf_url: str, download_path: str = 'app/cache/down
             pdf_file.write(response.content)
         logging.info(f"PDF descargado y guardado en {download_path}")
     else:
-        raise HTTPException(status_code=500, detail="No se pudo descargar el PDF")
+        raise Exception(detail="No se pudo descargar el PDF")
 
     # Verificar si el archivo existe y no está vacío
     if not os.path.exists(download_path) or os.path.getsize(download_path) == 0:
-        raise HTTPException(status_code=500, detail=f"El archivo PDF no se descargó correctamente o está vacío: {download_path}")
+        raise Exception(detail=f"El archivo PDF no se descargó correctamente o está vacío: {download_path}")
 
     # Extraer el texto del PDF descargado
     with fitz.open(download_path) as pdf:

@@ -2,13 +2,12 @@
 
 /venv
 
-/scraped_sites/*.txt
-
 *.dump
 
 .vscode
+.idea
 
-*.txt
+app/**/*.txt
 
 *.pdf
 
@@ -17,3 +16,4 @@
 kestra-storage/tutorial
 
 .DS_Store
+

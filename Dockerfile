@@ -1,5 +1,5 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 EXPOSE 8000
 
@@ -34,5 +34,5 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY . /app
 
-# # Define the default entry point for the container
-# ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8000", "-k", "uvicorn.workers.UvicornWorker", "app.main:app"]
+# Define the default entry point for the container
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8000", "-k", "uvicorn.workers.UvicornWorker", "app.main:app"]
